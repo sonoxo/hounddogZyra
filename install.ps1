@@ -1,12 +1,28 @@
 #Requires -Version 5.1
 
 [CmdletBinding()]
-param()
+param(
+    [Parameter(Mandatory = $false)]
+    [string]$Version = $env:HOUNDDOG_VERSION
+)
 
 # Stop the script on errors.
 $ErrorActionPreference = 'Stop'
 # Disable progress bar for faster downloads.
 $ProgressPreference = 'SilentlyContinue'
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = 'latest'
+}
+
+function Test-HoundDogVersionFormat {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Candidate
+    )
+
+    return $Candidate -match '^\d+\.\d+\.\d+(-(alpha|beta))?$'
+}
 
 # Check CPU architecture.
 $Arch = switch ($env:PROCESSOR_ARCHITECTURE) {
@@ -15,7 +31,17 @@ $Arch = switch ($env:PROCESSOR_ARCHITECTURE) {
     'x86' { 'amd64' }
     default { throw 'Unsupported CPU architecture. HoundDog CLI requires an AMD64, ARM64, or x86 processor.' }
 }
-$DownloadUrl = "https://github.com/hounddogai/hounddog/releases/latest/download/hounddog-windows-$Arch.zip"
+$ReleaseRootUrl = "https://github.com/hounddogai/hounddog/releases"
+$Version = $Version.Trim()
+if ($Version -ne 'latest' -and -not (Test-HoundDogVersionFormat -Candidate $Version)) {
+    throw "Invalid version '$Version'. Use x.y.z, x.y.z-alpha, or x.y.z-beta (without a leading 'v')."
+}
+
+$TagsToTry = if ($Version -eq 'latest') {
+    @('latest')
+} else {
+    @($Version, "v$Version")
+}
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
 
 try {
@@ -45,10 +71,42 @@ try {
     # Create a temporary directory for downloading the ZIP archive.
     New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
 
-    # Download and extract the ZIP archive to the installation directory.
+    # Download the ZIP archive and checksum file.
     $ZipPath = Join-Path $TempDir 'hounddog.zip'
-    Write-Host "Downloading ZIP from $DownloadUrl ..."
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile $ZipPath -UseBasicParsing
+    $ChecksumPath = Join-Path $TempDir 'hounddog.zip.sha256'
+    $ResolvedTag = $null
+    foreach ($Tag in $TagsToTry) {
+        if ($Tag -eq 'latest') {
+            $BaseDownloadUrl = "$ReleaseRootUrl/latest/download"
+        } else {
+            $BaseDownloadUrl = "$ReleaseRootUrl/download/$Tag"
+        }
+
+        $DownloadUrl = "$BaseDownloadUrl/hounddog-windows-$Arch.zip"
+        Write-Host "Downloading ZIP from $DownloadUrl ..."
+        try {
+            Invoke-WebRequest -Uri $DownloadUrl -OutFile $ZipPath -UseBasicParsing
+            Invoke-WebRequest -Uri "$DownloadUrl.sha256" -OutFile $ChecksumPath -UseBasicParsing
+            $ResolvedTag = $Tag
+            break
+        } catch {
+            continue
+        }
+    }
+
+    if (-not $ResolvedTag) {
+        throw "Failed to download HoundDog CLI version '$Version'. Ensure the release exists and uses x.y.z, x.y.z-alpha, or x.y.z-beta."
+    }
+
+    # Download the SHA256 checksum file and verify the integrity of the binary.
+    Write-Host "Verifying checksum ..."
+    $ExpectedHash = (Get-Content -Path $ChecksumPath).Split(' ')[0] # Get only the hash, sometimes files include filename
+    $ActualHash = Get-FileHash -Path $ZipPath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+    if ($ActualHash -ne $ExpectedHash) {
+        throw "Checksum verification failed."
+    }
+
+    # Extract the ZIP archive to the installation directory.
     Write-Host "Extracting ZIP to $InstallPath ..."
     Expand-Archive -Path $ZipPath -DestinationPath $InstallPath -Force
 
@@ -59,16 +117,6 @@ try {
     }
     if (-not (Test-Path (Join-Path $InstallPath 'hounddog.exe'))) {
         throw "hounddog.exe not found in $InstallPath after extraction."
-    }
-
-    # Download the SHA256 checksum file and verify the integrity of the binary.
-    Write-Host "Verifying checksum ..."
-    $ChecksumPath = Join-Path $TempDir 'hounddog.zip.sha256'
-    Invoke-WebRequest -Uri "$DownloadUrl.sha256" -OutFile $ChecksumPath -UseBasicParsing
-    $ExpectedHash = (Get-Content -Path $ChecksumPath).Split(' ')[0] # Get only the hash, sometimes files include filename
-    $ActualHash = Get-FileHash -Path $ZipPath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-    if ($ActualHash -ne $ExpectedHash) {
-        throw "Checksum verification failed."
     }
 
     # Update PATH based on admin status
@@ -101,6 +149,9 @@ try {
     # Test installation.
     if (Get-Command hounddog -ErrorAction SilentlyContinue) {
         Write-Host "`nHoundDog CLI installed successfully."
+        if ($Version -ne 'latest') {
+            Write-Host "Installed version: $Version"
+        }
         Write-Host "Run 'hounddog --help' to get started."
     } else {
         throw "Cannot find 'hounddog' command in PATH."

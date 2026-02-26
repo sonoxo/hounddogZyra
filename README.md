@@ -35,10 +35,22 @@ Check out the [sample Markdown report](./sample-report.md) and [FAQ](#faq) for m
 curl -fsSL https://raw.githubusercontent.com/hounddogai/hounddog/main/install.sh | sh
 ```
 
+To install a specific version:
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/hounddogai/hounddog/main/install.sh | sh -s -- --version 1.2.3
+```
+
 ### Windows
 
 ```shell
 irm https://raw.githubusercontent.com/hounddogai/hounddog/main/install.ps1 | iex
+```
+
+To install a specific version:
+
+```shell
+$env:HOUNDDOG_VERSION = '1.2.3'; irm https://raw.githubusercontent.com/hounddogai/hounddog/main/install.ps1 | iex
 ```
 
 Alternatively, you can download the binary directly from the [releases](https://github.com/hounddogai/hounddog/releases)

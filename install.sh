@@ -14,6 +14,40 @@ abort() {
   exit 1
 }
 
+usage() {
+    cat <<EOF
+Usage: sh install.sh [--version VERSION]
+
+Options:
+  -v, --version VERSION  Install a specific release version.
+                         Allowed formats: x.y.z, x.y.z-alpha, x.y.z-beta.
+                         Do not include a leading "v".
+                         Defaults to "latest".
+  -h, --help             Show this help message.
+EOF
+}
+
+VERSION="${HOUNDDOG_VERSION:-latest}"
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -v|--version)
+            [ "$#" -ge 2 ] || abort "Missing value for $1."
+            VERSION="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            abort "Unknown option: $1. Use --help to see supported options."
+            ;;
+    esac
+done
+
+[ -n "$VERSION" ] || abort "Version cannot be empty."
+
 # Check operating system.
 OS=$(uname -s)
 case "$OS" in
@@ -40,10 +74,40 @@ else
     command -v sha256sum >/dev/null 2>&1 || abort "Command 'sha256sum' is required to install HoundDog CLI."
 fi
 
-# Download the binary zip and checksum files to a temporary directory.
-DL_URL="https://github.com/hounddogai/hounddog/releases/latest/download"
-curl -fsSL ${DL_URL}/hounddog-${OS}-${ARCH}.tar.gz -o /tmp/hounddog.tar.gz
-curl -fsSL ${DL_URL}/hounddog-${OS}-${ARCH}.tar.gz.sha256 -o /tmp/hounddog.sha256
+if [ "$VERSION" != "latest" ]; then
+    printf '%s\n' "$VERSION" | awk 'BEGIN { ok = 0 } /^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta))?$/ { ok = 1 } END { exit(ok ? 0 : 1) }' \
+        || abort "Invalid version '${VERSION}'. Use x.y.z, x.y.z-alpha, or x.y.z-beta (without a leading 'v')."
+fi
+
+# Download the tarball and checksum files to a temporary directory.
+download_release_assets() {
+    RELEASES_URL="https://github.com/hounddogai/hounddog/releases"
+    ARTIFACT="hounddog-${OS}-${ARCH}.tar.gz"
+    TAGS_TO_TRY=""
+
+    if [ "$VERSION" = "latest" ]; then
+        TAGS_TO_TRY="latest"
+    else
+        TAGS_TO_TRY="${VERSION} v${VERSION}"
+    fi
+
+    for TAG in $TAGS_TO_TRY; do
+        if [ "$TAG" = "latest" ]; then
+            DL_URL="${RELEASES_URL}/latest/download"
+        else
+            DL_URL="${RELEASES_URL}/download/${TAG}"
+        fi
+
+        if curl -fsSL "${DL_URL}/${ARTIFACT}" -o /tmp/hounddog.tar.gz \
+            && curl -fsSL "${DL_URL}/${ARTIFACT}.sha256" -o /tmp/hounddog.sha256; then
+            return
+        fi
+    done
+
+    abort "Failed to download HoundDog CLI version '${VERSION}'. Ensure the release exists and uses x.y.z, x.y.z-alpha, or x.y.z-beta."
+}
+
+download_release_assets
 
 # Verify checksum.
 EXPECTED_CHECKSUM=$(awk '{print $1}' /tmp/hounddog.sha256)
@@ -83,6 +147,7 @@ if [ "$(id -u)" -ne 0 ]; then
     cleanup
     echo ""
     echo "HoundDog CLI installed successfully."
+    [ "$VERSION" = "latest" ] || echo "Installed version: ${VERSION}"
     echo "Please restart your shell and run 'hounddog --help' to get started."
 
 # If the script is running as root, install to /usr/local/bin/hounddog.
@@ -102,5 +167,6 @@ else
     cleanup
     echo ""
     echo "HoundDog CLI has been installed successfully."
+    [ "$VERSION" = "latest" ] || echo "Installed version: ${VERSION}"
     echo "Run 'hounddog --help' to get started."
 fi
