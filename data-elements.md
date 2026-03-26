@@ -1,16 +1,17 @@
 # HoundDog.ai Data Elements
 
-Generated: 2026-03-26 13:19:34
+Generated: 2026-03-26 18:26:38
 
 | Sensitivity | Count |
 |---|---|
-| 🟥 Critical | 30 |
-| 🟧 Medium | 47 |
-| 🟨 Low | 19 |
-| **Total** | 96 |
+| 🟥 Critical | 32 |
+| 🟧 Medium | 48 |
+| 🟨 Low | 20 |
+| **Total** | 100 |
 
 | Sensitivity | Data Element | Tags |
 |---|---|---|
+| 🟥 Critical | Aadhaar Number | PII |
 | 🟥 Critical | Auth Token | SECRET |
 | 🟥 Critical | Bank Account Number | PIFI |
 | 🟥 Critical | Bank Card Number | PIFI |
@@ -32,6 +33,7 @@ Generated: 2026-03-26 13:19:34
 | 🟥 Critical | National identity Number | PII |
 | 🟥 Critical | Passport Number | PII |
 | 🟥 Critical | Password | SECRET |
+| 🟥 Critical | Permanent Account Number | PIFI |
 | 🟥 Critical | Pregnancy Information | PHI |
 | 🟥 Critical | Proofing Session | PII |
 | 🟥 Critical | Security Clearance | PII |
@@ -74,6 +76,7 @@ Generated: 2026-03-26 13:19:34
 | 🟧 Medium | Medication | PHI |
 | 🟧 Medium | Organ Donor Status | PHI |
 | 🟧 Medium | Pain Level | PHI |
+| 🟧 Medium | Payment Method | PIFI |
 | 🟧 Medium | Payroll | PIFI |
 | 🟧 Medium | Phone Call History | PII |
 | 🟧 Medium | Phone Number | PII |
@@ -100,6 +103,7 @@ Generated: 2026-03-26 13:19:34
 | 🟨 Low | Last Name | PII |
 | 🟨 Low | MAC Address | PII |
 | 🟨 Low | National Origin | PII |
+| 🟨 Low | Order History | PII |
 | 🟨 Low | Parental Leave | PHI |
 | 🟨 Low | Passport Expiry Date | PII |
 | 🟨 Low | Passport Issue Date | PII |
