@@ -1,3 +1,42 @@
+<div align="center">
+
+<img width="100%" src="docs/assets/sonoxo-ecosystem-orbit.svg" alt="PRIVACY RADAR animated ecosystem flow" />
+
+# PRIVACY RADAR
+
+### Point the scanner at source code. Deterministic rules trace sensitive data to storage or sharing destinations and turn the findings into a report.
+
+[Start here](#start-here) · [Original project documentation](#original-project-documentation)
+
+</div>
+
+## Start here
+
+You do not need to understand the whole codebase first. Follow the illuminated path in the graphic:
+
+**01 — Choose source code** →  **02 — Detect data elements** →  **03 — Trace data flows** →  **04 — Generate evidence** →  **05 — Fix risky paths**
+
+| What you are looking at | Plain-English meaning |
+|---|---|
+| **Input** | What the user or system supplies |
+| **Core** | The repository’s main processing loop |
+| **Guardrails** | Configuration, policy, filters, or approval boundaries |
+| **Output** | The result the system returns or deploys |
+| **Proof** | Tests, reports, previews, logs, or other visible evidence |
+
+> **Status, stated plainly:** This fork preserves HoundDog.ai’s upstream scanner documentation and licensing. The visual is a Sonoxo portfolio guide, not a claim of a new integration.
+
+<details>
+<summary><strong>Accessibility and motion</strong></summary>
+
+The hero is a native SVG with descriptive text. Animation automatically stops when your device enables **Reduce Motion**. No JavaScript, tracking code, video autoplay, or external image host is required.
+
+</details>
+
+---
+
+## Original project documentation
+
 # HoundDog.ai - Modern Privacy Code Scanner
 
 [HoundDog.ai](https://hounddog.ai) is an ultra-fast privacy scanner that detects sensitive data flows and leaks in your
